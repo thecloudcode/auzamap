@@ -38,10 +38,23 @@
             top: 270px;
             right: 10px;
         }
+        #map-title {
+            position: absolute;
+            top: 20px;
+            left: 67px;
+            font-size: 24px;
+            font-weight: bold;
+            color: black;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 5px 10px;
+            border-radius: 5px;
+            z-index: 1000;
+        }
     </style>
 </head>
 <body>
     <div id="map"></div>
+    <div id="map-title">AUZA Maps</div>
     <div id="assam-info" class="info-box">
         <h4>Floods in Assam</h4>
         <img id="assam-img" src="{{ url_for('static', filename='assam/floods.jpg') }}" alt="Floods in Assam">
@@ -58,14 +71,13 @@
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 
     <script>
-
+        // The rest of the JavaScript remains unchanged
         var map = L.map('map').setView([20.5937, 78.9629], 5);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
         var markerLayer = L.layerGroup().addTo(map);
-
 
         function getMarkerColor(magnitude) {
             switch(magnitude.toLowerCase()) {
@@ -76,13 +88,11 @@
             }
         }
 
-
         function updateCoordinates() {
             fetch('/get_coordinates')
                 .then(response => response.json())
                 .then(data => {
                     markerLayer.clearLayers();
-
 
                     data.forEach(function(coord) {
                         var markerColor = getMarkerColor(coord.disasters.magnitude);
@@ -105,7 +115,6 @@
                 .catch(error => console.error('Error fetching coordinates:', error));
         }
 
-
         function cycleImages(region, images) {
             let currentIndex = 0;
             const imgElement = document.getElementById(`${region}-img`);
@@ -115,19 +124,15 @@
             }, 2000);
         }
 
-
         const assamImages = ["{{ url_for('static', filename='assam/floods.jpg') }}", "{{ url_for('static', filename='assam/f2.png') }}"];
         const ladakhImages = ["{{ url_for('static', filename='ladakh/e1.jpg') }}", "{{ url_for('static', filename='ladakh/e2.jpg') }}"];
         const odishaImages = ["{{ url_for('static', filename='odhisa/c1.jpg') }}", "{{ url_for('static', filename='odhisa/c2.jpg') }}"];
-
 
         cycleImages('assam', assamImages);
         cycleImages('ladakh', ladakhImages);
         cycleImages('odisha', odishaImages);
 
-
         setInterval(updateCoordinates, 2000);
-
 
         updateCoordinates();
     </script>
