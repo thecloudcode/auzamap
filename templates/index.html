@@ -3,54 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Map with Coordinates</title>
+    <title>Dynamic Map with Coordinates and Disaster Types</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
         #map {
             height: 100vh;
         }
+        .custom-tooltip .leaflet-tooltip-content {
+            white-space: nowrap;
+        }
+        .info-box {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+            z-index: 1000;
+        }
+        .info-box img {
+            max-width: 300px;
+            display: block;
+        }
+        #assam-info {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+        }
+        #ladakh-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        #odisha-info {
+            position: absolute;
+            top: 270px;
+            right: 10px;
+        }
     </style>
 </head>
 <body>
     <div id="map"></div>
+    <div id="assam-info" class="info-box">
+        <h4>Floods in Assam</h4>
+        <img id="assam-img" src="{{ url_for('static', filename='assam/floods.jpg') }}" alt="Floods in Assam">
+    </div>
+    <div id="ladakh-info" class="info-box">
+        <h4>Ladakh</h4>
+        <img id="ladakh-img" src="{{ url_for('static', filename='ladakh/e1.jpg') }}" alt="Ladakh">
+    </div>
+    <div id="odisha-info" class="info-box">
+        <h4>Odisha</h4>
+        <img id="odisha-img" src="{{ url_for('static', filename='odhisa/c1.jpg') }}" alt="Odisha">
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 
     <script>
-        // Initialize the map
-        var map = L.map('map').setView([20.5937, 78.9629], 5);  // Center on India
+
+        var map = L.map('map').setView([20.5937, 78.9629], 5);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
-        var tooltipLayer = L.layerGroup().addTo(map);  // Create an empty layer group to hold the tooltips
+        var markerLayer = L.layerGroup().addTo(map);
 
-        // Function to fetch coordinates from the Flask server and update the map
+
+        function getMarkerColor(magnitude) {
+            switch(magnitude.toLowerCase()) {
+                case 'low': return 'green';
+                case 'moderate': return 'yellow';
+                case 'high': return 'red';
+                default: return 'blue';
+            }
+        }
+
+
         function updateCoordinates() {
-            fetch('/get_coordinates')  // Call Flask route to get random coordinates
+            fetch('/get_coordinates')
                 .then(response => response.json())
                 .then(data => {
-                    tooltipLayer.clearLayers();  // Clear previous markers
+                    markerLayer.clearLayers();
 
-                    // Add new labels for the given coordinates
+
                     data.forEach(function(coord) {
-                        L.tooltip({
+                        var markerColor = getMarkerColor(coord.disasters.magnitude);
+                        var marker = L.circleMarker([coord.lat, coord.lon], {
+                            color: markerColor,
+                            fillColor: markerColor,
+                            fillOpacity: 0.8,
+                            radius: 8
+                        }).addTo(markerLayer);
+
+                        var tooltipContent = `<strong>${coord.city}</strong><br>${coord.disasters.type}`;
+                        marker.bindTooltip(tooltipContent, {
                             permanent: true,
                             direction: 'right',
-                            offset: L.point(10, 0)
-                        })
-                        .setContent(coord[2])  // Set the name of the city
-                        .setLatLng([coord[0], coord[1]])  // Set the position (latitude and longitude)
-                        .addTo(tooltipLayer);
+                            offset: L.point(10, 0),
+                            className: 'custom-tooltip'
+                        });
                     });
                 })
                 .catch(error => console.error('Error fetching coordinates:', error));
         }
 
-        // Call the function every 2 seconds to update the map
+
+        function cycleImages(region, images) {
+            let currentIndex = 0;
+            const imgElement = document.getElementById(`${region}-img`);
+            setInterval(() => {
+                currentIndex = (currentIndex + 1) % images.length;
+                imgElement.src = images[currentIndex];
+            }, 2000);
+        }
+
+
+        const assamImages = ["{{ url_for('static', filename='assam/floods.jpg') }}", "{{ url_for('static', filename='assam/f2.png') }}"];
+        const ladakhImages = ["{{ url_for('static', filename='ladakh/e1.jpg') }}", "{{ url_for('static', filename='ladakh/e2.jpg') }}"];
+        const odishaImages = ["{{ url_for('static', filename='odhisa/c1.jpg') }}", "{{ url_for('static', filename='odhisa/c2.jpg') }}"];
+
+
+        cycleImages('assam', assamImages);
+        cycleImages('ladakh', ladakhImages);
+        cycleImages('odisha', odishaImages);
+
+
         setInterval(updateCoordinates, 2000);
 
-        // Initial call to populate the map on page load
+
         updateCoordinates();
     </script>
 </body>
